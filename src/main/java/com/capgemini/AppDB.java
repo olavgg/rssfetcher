@@ -18,7 +18,7 @@ public class AppDB {
 
     public static void initDBPool(){
         source.setDataSourceName("SearchProto");
-        source.setServerName("localhost");
+        source.setServerName(App.config.getProperty("postgresql.host"));
         source.setDatabaseName("searchproto");
         source.setUser("cap");
         source.setPassword("capgemini");
@@ -69,7 +69,8 @@ public class AppDB {
     public static boolean execute(String sql, Map<Object, Object> params){
         Sql db = new Sql(source);
         try {
-            return db.execute(params, sql);
+            db.execute(params, sql);
+            return true;
         } catch (SQLException e) {
             System.out.println(params.entrySet());
             e.printStackTrace();

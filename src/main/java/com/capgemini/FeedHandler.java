@@ -5,6 +5,11 @@ import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.FeedException;
 import com.rometools.rome.io.SyndFeedInput;
 import groovy.sql.Sql;
+import org.apache.log4j.Logger;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,16 +29,18 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class FeedHandler {
 
+    private static final Logger log = Logger.getLogger(FeedHandler.class);
+
     public static Map<String, String> hashIndex = new ConcurrentHashMap<>();
 
     public static void loadHashIndex(){
         Sql session = AppDB.getSession();
         hashIndex.clear();
         try {
-            session.rows("SELECT hash FROM news_article")
-                    .parallelStream().forEach( row -> {
-                hashIndex.put((String)row.getProperty("hash"), "");
-            });
+            session.rows("SELECT hash FROM news_article LIMIT 10000")
+                    .parallelStream()
+                    .forEach( row ->
+                            hashIndex.put((String)row.getProperty("hash"), ""));
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException("SQL query failed...");
@@ -46,22 +53,8 @@ public class FeedHandler {
         return new FeedHandler();
     }
 
-    public Properties getProperties(){
-        final String resourceName = "rss.properties";
-        ClassLoader loader =
-                Thread.currentThread().getContextClassLoader();
-        Properties properties = new Properties();
-        try(InputStream resourceStream =
-                    loader.getResourceAsStream(resourceName)) {
-            properties.load(resourceStream);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return properties;
-    }
-
     public void downloadRSSFeed(String stringUrl){
-        System.out.println(stringUrl);
+        log.info(stringUrl);
         try {
             URL url = new URL(stringUrl);
             HttpURLConnection httpcon = (HttpURLConnection)url.openConnection();
@@ -81,6 +74,7 @@ public class FeedHandler {
                 feed.setAuthor(entry.getAuthor());
                 feed.setPublishedDate(entry.getPublishedDate());
                 feed.setDescription(entry.getDescription().getValue());
+                feed.setArticleContent(getArticleContent(feed.getLink()));
                 feed.save();
                 hashIndex.put(feed.getHash(), "");
             }
@@ -88,6 +82,17 @@ public class FeedHandler {
         } catch (IOException | FeedException e) {
             e.printStackTrace();
         }
+    }
+
+    private String getArticleContent(String link) throws IOException{
+        StringBuilder stringBuffer = new StringBuilder();
+        Document doc = Jsoup.connect(link).get();
+        Elements paragraphs = doc.select("p");
+        for(Element element: paragraphs){
+            stringBuffer.append(element.text());
+            stringBuffer.append(" ");
+        }
+        return stringBuffer.toString();
     }
 
 }

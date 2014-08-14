@@ -23,6 +23,8 @@ public class Feed {
     private Timestamp dateCreated;
     private String hash;
 
+    private String articleContent;
+
     public Feed(){
 
     }
@@ -82,6 +84,14 @@ public class Feed {
         this.dateCreated = dateCreated;
     }
 
+    public String getArticleContent() {
+        return articleContent;
+    }
+
+    public void setArticleContent(String articleContent) {
+        this.articleContent = articleContent;
+    }
+
     public String getHash() {
         if(hash == null){
             setHash();
@@ -104,18 +114,12 @@ public class Feed {
         map.put("description", getDescription());
         map.put("dateCreated", getDateCreated());
         map.put("hash", getHash());
+        map.put("article_content", getArticleContent());
         return map;
     }
 
     public boolean save(){
-        return AppDB.execute(
-                "INSERT INTO news_article (" +
-                    "title, link, published_date, author, description, " +
-                    "date_created, hash) " +
-                "VALUES(" +
-                    ":title, :link, :publishedDate, :author, " +
-                    ":description, :dateCreated, :hash)",
-                getProperties()
-        );
+        FeedDOA feedDOA = new FeedDOA(this);
+        return feedDOA.save();
     }
 }

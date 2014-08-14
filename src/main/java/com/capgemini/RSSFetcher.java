@@ -14,8 +14,11 @@ import java.util.concurrent.*;
 public class RSSFetcher {
 
     public static void main(String[] args){
-
+        new AppLogger();
         AppDB.initDBPool();
+        if(!ESHandler.initIndex()){
+            System.exit(0);
+        }
 
         int cores = Runtime.getRuntime().availableProcessors();
         ExecutorService executorService = Executors.newFixedThreadPool(cores);
@@ -27,7 +30,7 @@ public class RSSFetcher {
         Set<Callable<Void>> callables = new HashSet<>();
 
         FeedHandler feedHandler = FeedHandler.getInstance();
-        Properties properties = feedHandler.getProperties();
+        Properties properties = App.getProperties("rss.properties");
         for(String key : properties.stringPropertyNames()) {
             final String url = properties.getProperty(key);
             callables.add(() -> {
@@ -48,5 +51,6 @@ public class RSSFetcher {
         }
         executorService.shutdown();
         AppDB.closeDB();
+        ESHandler.shutdown();
     }
 }

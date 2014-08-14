@@ -27,6 +27,7 @@ CREATE TABLE news_article (
   date_created timestamp NOT NULL,
   author varchar (512) NULL,
   image int NULL,
+  article_content text NOT NULL,
   FOREIGN KEY (image) REFERENCES image(id),
   CONSTRAINT news_articles_pk PRIMARY KEY (id)
 );
