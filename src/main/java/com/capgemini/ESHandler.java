@@ -117,7 +117,7 @@ public class ESHandler {
                         .field("compress", "true")
                     .endObject()
                     .startObject("_all")
-                        .field("enabled", "false")
+                        .field("enabled", "true")
                     .endObject()
                     .startObject("properties")
                         .startObject("id")
