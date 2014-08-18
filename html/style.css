@@ -1,0 +1,84 @@
+html,body{
+	margin:0;
+	background-color: #26262c;
+	color:#fff;
+	font-size: 20px;
+	font-family: 'Open Sans','Droid Arabic Naskh','Mplus Fulah',sans-serif;
+	font-weight: 300;
+	height: 100%;
+	min-width: 300px;
+}
+
+#search{
+	margin:auto;
+	width: 90%;
+	max-width: 800px;
+	padding:1em;
+}
+#search i{
+	font-size: 2em;
+	padding: 0.25em;
+	position: absolute;
+	color:#333;
+}
+#search > span{
+	font-size: 0.6em;
+}
+input[type="text"]{
+	box-shadow: 2px -2px 4px rgba(75, 75, 75, 0.5);
+}
+input[type="text"]{
+	margin: 0;
+	padding: 0.2em 0.6em 0.2em 1.5em;
+	background-color: #FFF;
+	border: 1px solid #eee;
+	border-radius: 2px;
+	outline: 0 none;
+	font-size: 1.8em;
+	line-height: normal;
+	letter-spacing: -1px;
+	color: #333;
+	box-sizing: border-box;
+	width:100%;
+}
+#search_results {
+	text-align: center;
+}
+#search_results ul{
+	width: 95%;
+	margin: 0;
+	padding: 0;
+	display: inline-block;
+}
+#search_results ul li{
+	display: inline-block;
+	list-style: none;
+	width: 20em;
+	padding:1.2em;
+	text-align: left;
+	height: 8em;
+}
+
+#search_results ul li h1{
+	font-size: 1.6em;
+	vertical-align: middle;
+	display: table-cell;
+	height: inherit;
+	border: 0;
+}
+#search_results ul li p{
+	font-size: 0.8em;
+}
+
+#search_results ul li.green{
+	background-color: #0F9D58;
+}
+#search_results ul li.yellow{
+	background-color: #F4B400;
+}
+#search_results ul li.red{
+	background-color: #DB4437;
+}
+#search_results ul li.blue{
+	background-color: #4285F4;
+}

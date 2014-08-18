@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<meta charset="UTF-8">
+	<title></title>
+	<link rel="stylesheet" type="text/css" href="style.css">
+	<link rel="stylesheet" type="text/css" href="font-awesome.min.css">
+</head>
+<body>
+<div id="search">
+	<span>Total articles indexed:</span><span id="total"></span>
+	<form id="query_form" action="" method="POST" >
+		<label for="search_input">
+			<i class="fa fa-search"></i>
+		</label>
+		<input type="text" id="search_input" name="query" autofocus="true"/>
+	</form>
+</div>
+<div id="search_results">
+	<ul id="articles">
+		<li class="green">
+			<h1>Article 2</h1>
+			<p>Yes no yes jajaja batgfgfd ole avxf fdgfdghj fdjgjdfg jdfgdfgfd fdgjdf njfgjfngf. ..1! fkgjkjfgf</p>
+		</li><li class="blue">
+			<h1>Article 3</h1>
+			<p>Yes no yes jajaja batgfgfd ole avxf fdgfdghj fdjgjdfg jdfgdfgfd fdgjdf njfgjfngf. ..1! fkgjkjfgf</p>
+		</li>
+		<li>Article 4</li>
+		<li>Article 5</li>
+		<li>Article 6</li>
+		<li>Article 7</li>
+		<li>Article 8</li>
+		<li>Article 9</li>
+		<li>Article 10</li>
+		<li>Article 11</li>
+		<li>Article 12</li>
+		<li>Article 13</li>
+		<li>Article 14</li>
+		<li>Article 15</li>
+		<li>Article 16</li>
+		<li>Article 17</li>
+		<li>Article 18</li>
+		<li>Article 19</li>
+	</ul>
+</div>
+<script type="application/javascript">
+	var um = {};
+	um.findFirstParentWithClass = function(classname, element){
+		if(element.classList.contains(classname)){
+			return element;
+		}
+		return um.findFirstParentWithClass(classname, element.parentNode);
+	};
+	um.getForm = function(element){
+		return um.findFirstParentWithTagname('FORM', element);
+	};
+	um.findFirstParentWithTagname = function(tagName, element){
+		if(element.tagName === tagName){
+			return element;
+		}
+		return um.findFirstParentWithTagname(tagName, element.parentNode);
+	};
+	um.findFirstChildWithTagname = function(tagName, element){
+		var children = element.children;
+		for(var i=0; i<children.length; i++){
+			if(children[i].tagName === tagName){
+				return children[i];
+			}
+			var result = um.findFirstChildWithTagname(tagName, children[i]);
+			if(result){
+				return result
+			}
+		}
+		return null;
+	};
+	um.hasClassName = function(target, className){
+		return new RegExp('(\\s|^)' + className + '(\\s|$)').test(target.className);
+	};
+	um.asyncFormSubmit = function(element, object){
+		if(element.tagName === "BUTTON") {
+			element.setAttribute("data-loading", "");
+			element.querySelector(".btn-spinner").style.opacity = 1;
+			element.disabled = true;
+		}
+		var form = um.findFirstParentWithTagname('FORM', element);
+		var requestData = {};
+		requestData.data = new FormData(form);
+		requestData.url = object.url || form.action;
+		requestData.method = object.method || form.method;
+		requestData.sync = false;
+		var completeFunction = object.complete || function(response){};
+		requestData.complete = function(response){
+			if(element.tagName === "BUTTON") {
+				element.removeAttribute("data-loading");
+				element.querySelector(".btn-spinner").style.opacity = 0;
+				element.disabled = false;
+			}
+			completeFunction(response);
+		};
+		um.sendRequest(requestData);
+		return false;
+	};
+	um.sendRequest = function(object){
+		object.method = (object.method || 'GET').toUpperCase();
+		object.sync = object.sync || false;
+		object.data = object.data || new FormData();
+		object.isJSON = object.isJSON || false;
+		var request = um.createCORSRequest(object.method, object.url);
+		//request.open(object.method, object.url, false);
+		if(object.isJSON == true){
+			request.setRequestHeader("Content-type", "application/json");
+		}
+		request.onerror = function() {
+			console.log('REQUEST ERROR:');
+			console.log('HTTP CODE:' + request.status);
+			console.log(request.responseText);
+		};
+
+		if(object.sync == false) {
+			request.onload = function () {
+				if (request.status >= 200 && request.status < 500) {
+					if(object.complete instanceof Function) {
+						object.complete(request);
+					}
+				} else {
+					request.onerror();
+				}
+			};
+		}
+		request.send(object.data);
+		if(object.sync) {
+			if (request.status == 200) {
+				object.complete(request);
+			} else {
+				request.onerror();
+			}
+		}
+	};
+	um.createCORSRequest= function(method, url) {
+		var xhr = new XMLHttpRequest();
+		if ("withCredentials" in xhr) {
+
+			// Check if the XMLHttpRequest object has a "withCredentials" property.
+			// "withCredentials" only exists on XMLHTTPRequest2 objects.
+			xhr.open(method, url, true);
+
+		} else if (typeof XDomainRequest != "undefined") {
+
+			// Otherwise, check if XDomainRequest.
+			// XDomainRequest only exists in IE, and is IE's way of making CORS requests.
+			xhr = new XDomainRequest();
+			xhr.open(method, url);
+
+		} else {
+
+			// Otherwise, CORS is not supported by the browser.
+			xhr = null;
+
+		}
+		return xhr;
+	};
+	um.domLoaded = {};
+	um.domLoaded.updateTotalNumberOfDocuments = function(){
+		var url = "http://localhost:9200/articles/_stats";
+		um.sendRequest(
+				{
+					url: url,
+					complete: function(response){
+						data = JSON.parse(response.responseText);
+						document.getElementById("total").textContent =
+								data.indices.articles.primaries.docs.count;
+					}
+				}
+		)
+	};
+	document.addEventListener("DOMContentLoaded", function(event) {
+		var properties = Object.keys(um.domLoaded);
+		for (var i = 0; i < properties.length; i++) {
+			um.domLoaded[properties[i]]();
+		}
+		um.search();
+	});
+
+	um.search = function(){
+		var url = "http://localhost:9200/articles/_search";
+		var data = {
+			"fields": [
+				"title",
+				"dateCreated"
+			],
+			"query": {
+				"match": {
+					"_all": {
+						"query": "Helge Lund",
+						"operator": "AND",
+						"minimum_should_match": "70%"
+					}
+				}
+			},
+			"from": 0,
+			"size": 20,
+			"sort": [
+				{
+					"dateCreated": {
+						"order": "desc"
+					}
+				}
+			]
+		};
+		um.sendRequest(
+				{
+					url: url,
+					isJSON: true,
+					method: "POST",
+					data: JSON.stringify(data),
+					complete: function(response){
+						data = JSON.parse(response.responseText);
+						um.updateArticles(data);
+					}
+				}
+		)
+	};
+	um.updateArticles = function(data){
+		var articles = document.getElementById("articles");
+		articles.innerHTML = "";
+		for(var i=0; i<data.hits.hits.length; i++){
+			var article = um.createArticleElement(data.hits.hits[i].fields);
+			articles.appendChild(article);
+		}
+	};
+	um.createArticleElement = function(article){
+		var li = document.createElement("LI");
+		li.className = um.getRandomColor();
+
+		var h1 = document.createElement("H1");
+		console.log(article.title);
+		h1.textContent = article.title;
+
+		li.appendChild(h1);
+		return li;
+	};
+	um.getRandomColor = function(){
+		var colors = ["red", "yellow", "blue", "green"];
+		return colors[Math.floor(Math.random() * colors.length)];
+	};
+</script>
+</body>
+</html>
