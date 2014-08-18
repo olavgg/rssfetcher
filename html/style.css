@@ -41,6 +41,13 @@ input[type="text"]{
 	box-sizing: border-box;
 	width:100%;
 }
+a{
+	color:#fff;
+	height: inherit;
+	display: inline-block;
+	text-decoration: none;
+	cursor: pointer;
+}
 #search_results {
 	text-align: center;
 }

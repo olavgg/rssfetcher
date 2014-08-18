@@ -9,7 +9,7 @@
 <body>
 <div id="search">
 	<span>Total articles indexed:</span><span id="total"></span>
-	<form id="query_form" action="" method="POST" >
+	<form id="query_form" action="" onsubmit="return false;"  method="POST" >
 		<label for="search_input">
 			<i class="fa fa-search"></i>
 		</label>
@@ -18,29 +18,7 @@
 </div>
 <div id="search_results">
 	<ul id="articles">
-		<li class="green">
-			<h1>Article 2</h1>
-			<p>Yes no yes jajaja batgfgfd ole avxf fdgfdghj fdjgjdfg jdfgdfgfd fdgjdf njfgjfngf. ..1! fkgjkjfgf</p>
-		</li><li class="blue">
-			<h1>Article 3</h1>
-			<p>Yes no yes jajaja batgfgfd ole avxf fdgfdghj fdjgjdfg jdfgdfgfd fdgjdf njfgjfngf. ..1! fkgjkjfgf</p>
-		</li>
-		<li>Article 4</li>
-		<li>Article 5</li>
-		<li>Article 6</li>
-		<li>Article 7</li>
-		<li>Article 8</li>
-		<li>Article 9</li>
-		<li>Article 10</li>
-		<li>Article 11</li>
-		<li>Article 12</li>
-		<li>Article 13</li>
-		<li>Article 14</li>
-		<li>Article 15</li>
-		<li>Article 16</li>
-		<li>Article 17</li>
-		<li>Article 18</li>
-		<li>Article 19</li>
+		
 	</ul>
 </div>
 <script type="application/javascript">
@@ -159,7 +137,149 @@
 		}
 		return xhr;
 	};
+	um.timer = (function(){
+		var typingTimer;
+		var doneTyping = 100;
+		return{
+			addTypingTimer: function(ele, cb_function){
+				ele.onkeyup = function(e){
+					clearTimeout(typingTimer);
+					typingTimer = setTimeout(cb_function, doneTyping);
+				};
+			}
+		};
+	})();
+
+	um.ux = (function(){
+		return{
+			FilterQuery: function(properties){
+				var self = {};
+				self.properties = null;
+				function setFilterQuery(){
+					um.timer.addTypingTimer(
+							self.properties.getInputElement(),
+							function(){
+								if(self.properties.getBeforeInterceptor()()){
+									um.search(
+											self.properties.getQuery(),
+											self.properties.getOnCompleteFunction()
+									);
+								}
+							}
+					);
+				}
+				if(arguments.length > 0){
+					self.properties = properties;
+					setFilterQuery();
+				}
+				return{
+					setProperties: function(properties){
+						self.properties = properties;
+						setFilterQuery();
+					}
+				};
+			},
+			FilterQueryProperties: function(){
+				var self = {};
+				self.inputElement = null;
+				self.params = {};
+				self.beforeInterceptor = function(){return true;};
+				self.cb = function(){};
+				self.keyDelay = 100;
+				return{
+					setInputElement: function(ele){
+						self.inputElement = ele;
+					},
+					setQueryUrl: function (url){
+						self.queryUrl = url;
+					},
+					setQuery: function(query){
+						self.query = query;
+					},
+					addParam: function(key, value){
+						self.params[key] = value;
+					},
+					setParams: function(params){
+						if(typeof(params) === "object"){
+							self.params = params;
+						} else {
+							function ParamsException(message) {
+								this.message = message;
+								this.name = "ParamsException";
+								this.toString = function(){
+									return this.name + ": " + this.message;
+								}
+							}
+							throw new ParamsException("Argument is not an object.");
+						}
+					},
+					setBeforeInterceptor: function(f){
+						self.beforeInterceptor = f;
+					},
+					onComplete: function(cb){
+						self.cb = cb;
+					},
+					getInputElement: function(){
+						return self.inputElement;
+					},
+					getQueryUrl: function (){
+						return self.queryUrl;
+					},
+					getQuery: function(){
+						return self.query();
+					},
+					getParams: function(){
+						return self.params;
+					},
+					getOnCompleteFunction: function(){
+						return self.cb;
+					},
+					getBeforeInterceptor: function(){
+						return self.beforeInterceptor;
+					}
+				}
+			}
+		};
+	})();
 	um.domLoaded = {};
+	um.g = {};
+	um.domLoaded.initSearch = function(){
+		um.g.fqp = new um.ux.FilterQueryProperties();
+		var queryElement = document.getElementById('search_input');
+		um.g.fqp.setInputElement(queryElement);
+		um.g.fqp.setQueryUrl("http://localhost:9200/articles/_search");
+		um.g.fqp.setQuery(
+				function(){
+					var ele = document.getElementById('search_input');
+					if (ele.value.length > 1) {
+						return ele.value;
+					}
+					return null;
+				}
+		);
+		um.g.fqp.setBeforeInterceptor(
+				function(){
+					um.g.currentQuery = um.g.fqp.getQuery();
+					if(um.g.currentQuery === um.g.lastQuery){
+						return false;
+					}
+					um.g.lastQuery = um.g.currentQuery;
+					if(um.g.currentQuery == null){
+						var ulList = document.getElementById('articles');
+						ulList.innerHTML = "";
+						return false;
+					}
+					return true;
+				}
+		);
+		um.g.fqp.onComplete(
+				function(response){
+					var data = JSON.parse(response.responseText);
+					um.updateArticles(data);
+				}
+		);
+		um.g.fq = new um.ux.FilterQuery(um.g.fqp);
+	};
 	um.domLoaded.updateTotalNumberOfDocuments = function(){
 		var url = "http://localhost:9200/articles/_stats";
 		um.sendRequest(
@@ -178,27 +298,28 @@
 		for (var i = 0; i < properties.length; i++) {
 			um.domLoaded[properties[i]]();
 		}
-		um.search();
 	});
 
-	um.search = function(){
+	um.search = function(query, completeFunction){
+		console.log(query);
 		var url = "http://localhost:9200/articles/_search";
 		var data = {
 			"fields": [
 				"title",
-				"dateCreated"
+				"dateCreated",
+				"link"
 			],
 			"query": {
 				"match": {
 					"_all": {
-						"query": "Helge Lund",
+						"query": query,
 						"operator": "AND",
 						"minimum_should_match": "70%"
 					}
 				}
 			},
 			"from": 0,
-			"size": 20,
+			"size": 9,
 			"sort": [
 				{
 					"dateCreated": {
@@ -213,7 +334,7 @@
 					isJSON: true,
 					method: "POST",
 					data: JSON.stringify(data),
-					complete: function(response){
+					complete: completeFunction || function(response){
 						data = JSON.parse(response.responseText);
 						um.updateArticles(data);
 					}
@@ -232,17 +353,22 @@
 		var li = document.createElement("LI");
 		li.className = um.getRandomColor();
 
+		var a = document.createElement("A");
+		a.href = article.link;
 		var h1 = document.createElement("H1");
 		console.log(article.title);
 		h1.textContent = article.title;
-
-		li.appendChild(h1);
+		a.appendChild(h1);
+		li.appendChild(a);
 		return li;
 	};
 	um.getRandomColor = function(){
 		var colors = ["red", "yellow", "blue", "green"];
 		return colors[Math.floor(Math.random() * colors.length)];
 	};
+
+
+
 </script>
 </body>
 </html>
