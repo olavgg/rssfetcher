@@ -13,12 +13,13 @@
 		<label for="search_input">
 			<i class="fa fa-search"></i>
 		</label>
-		<input type="text" id="search_input" name="query" autofocus="true"/>
+		<input type="text" id="search_input" name="query" autocomplete="false" autofocus="true"/>
+		<ul id="suggestions"></ul>
 	</form>
 </div>
 <div id="search_results">
 	<ul id="articles">
-		
+
 	</ul>
 </div>
 <script type="application/javascript">
@@ -53,6 +54,9 @@
 	};
 	um.hasClassName = function(target, className){
 		return new RegExp('(\\s|^)' + className + '(\\s|$)').test(target.className);
+	};
+	um.extractDomain = function(url) {
+		return url.split('/')[2];
 	};
 	um.asyncFormSubmit = function(element, object){
 		if(element.tagName === "BUTTON") {
@@ -265,8 +269,8 @@
 					}
 					um.g.lastQuery = um.g.currentQuery;
 					if(um.g.currentQuery == null){
-						var ulList = document.getElementById('articles');
-						ulList.innerHTML = "";
+						var ul = document.getElementById('articles');
+						ul.innerHTML = "";
 						return false;
 					}
 					return true;
@@ -276,6 +280,12 @@
 				function(response){
 					var data = JSON.parse(response.responseText);
 					um.updateArticles(data);
+					var suggestHeaders = document.querySelectorAll(".suggest-header");
+					for(var i=0; i < suggestHeaders.length; i++){
+						suggestHeaders[i].parentNode.removeChild(suggestHeaders[i]);
+					}
+					var ul = document.getElementById('suggestions');
+					ul.innerHTML = "";
 				}
 		);
 		um.g.fq = new um.ux.FilterQuery(um.g.fqp);
@@ -293,6 +303,20 @@
 				}
 		)
 	};
+	um.domLoaded.addKeyboardEventsForForm = function(){
+		var formElement = document.getElementById("query_form");
+		var keyboardEvent = function(e) {
+			var code = e.keyCode || e.which;
+			var ul = document.getElementById('suggestions');
+			if (ul.children.length > 0 && code == 13) {
+				e.preventDefault();
+				return false;
+			}
+			return true;
+		};
+		formElement.addEventListener("keyup", keyboardEvent, false);
+		formElement.addEventListener("keypress", keyboardEvent, false);
+	};
 	document.addEventListener("DOMContentLoaded", function(event) {
 		var properties = Object.keys(um.domLoaded);
 		for (var i = 0; i < properties.length; i++) {
@@ -301,7 +325,6 @@
 	});
 
 	um.search = function(query, completeFunction){
-		console.log(query);
 		var url = "http://localhost:9200/articles/_search";
 		var data = {
 			"fields": [
@@ -348,6 +371,99 @@
 			var article = um.createArticleElement(data.hits.hits[i].fields);
 			articles.appendChild(article);
 		}
+		if(data.hits.hits.length == 0){
+			um.showSuggestions();
+		}
+	};
+	um.showSuggestions = function(){
+		var url = "http://localhost:9200/articles/_suggest";
+		var data = {
+			"suggestions": {
+				"text": document.getElementById('search_input').value,
+				"term": {
+					"field": "article_content"
+				}
+			}
+		};
+		um.sendRequest(
+				{
+					url: url,
+					isJSON: true,
+					method: "POST",
+					data: JSON.stringify(data),
+					complete: function(response){
+						data = JSON.parse(response.responseText);
+						um.createSuggestionsDOM(data);
+					}
+				}
+		)
+	};
+	um.createSuggestionsDOM = function(data){
+		var header = document.createElement("SPAN");
+		header.className = "suggest-header";
+		header.textContent = "Mente du å søke etter:";
+		var queryElement = document.getElementById('search_input');
+		var ul = document.getElementById('suggestions');
+		um.getForm(queryElement).insertBefore(header, ul);
+		ul.innerHTML = "";
+		if(typeof data == 'undefined'){
+			return;
+		}
+		for(var i = 0; i < data.suggestions.length; i++){
+			if(data.suggestions[i].options.length > 0){
+				for(var y = 0; y < data.suggestions[i].options.length; y++) {
+					var li = document.createElement("LI");
+					li.appendChild(
+							document.createTextNode(
+									data.suggestions[i].options[y].text)
+					);
+					ul.appendChild(li);
+				}
+			}
+		}
+		if(ul.firstChild != null) {
+			ul.firstChild.className = "selected";
+			document.onkeydown = function (e) {
+				e = e || window.event;
+				if (e.keyCode == 38) {
+					queryElement.blur();
+					if (ul.children[0].className === "selected") {
+						return;
+					}
+					for (var i = 0; i < ul.children.length; i++) {
+						if (ul.children[i].className === "selected") {
+							ul.children[i].className = "";
+							ul.children[i - 1].className = "selected";
+							break;
+						}
+					}
+				} else if (e.keyCode == 40) {
+					queryElement.blur();
+					var length = ul.children.length;
+					if (ul.children[length - 1].className === "selected") {
+						return;
+					}
+					for (var i = length - 1; i > -1; i--) {
+						if (ul.children[i].className === "selected") {
+							ul.children[i].className = "";
+							ul.children[i + 1].className = "selected";
+							break;
+						}
+					}
+				} else if (e.keyCode == 13) {
+					for (var i = 0; i < ul.children.length; i++) {
+						if (ul.children[i].className === "selected") {
+							queryElement.value = ul.children[i].textContent;
+							var cb = um.g.fqp.getOnCompleteFunction();
+							um.search(
+									queryElement.value,
+									cb
+							);
+						}
+					}
+				}
+			}
+		}
 	};
 	um.createArticleElement = function(article){
 		var li = document.createElement("LI");
@@ -355,10 +471,15 @@
 
 		var a = document.createElement("A");
 		a.href = article.link;
+
 		var h1 = document.createElement("H1");
-		console.log(article.title);
 		h1.textContent = article.title;
+
+		var span = document.createElement("SPAN");
+		span.textContent = um.extractDomain(article.link.toString());
+
 		a.appendChild(h1);
+		a.appendChild(span);
 		li.appendChild(a);
 		return li;
 	};

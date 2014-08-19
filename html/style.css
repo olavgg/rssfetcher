@@ -47,6 +47,14 @@ a{
 	display: inline-block;
 	text-decoration: none;
 	cursor: pointer;
+
+}
+#search_results ul li a{
+	position: relative;
+}
+#search_results ul li a span{
+	position: absolute;
+	right: 0;
 }
 #search_results {
 	text-align: center;
@@ -88,4 +96,29 @@ a{
 }
 #search_results ul li.blue{
 	background-color: #4285F4;
+}
+.suggest-header{
+	background:#3F4851;
+	width:800px;
+	display: inline-block;
+	font-size: 0.8em;
+	font-weight: bold;
+}
+ul#suggestions {
+	position:absolute;
+	background:#3F4851;
+	margin:0;
+	padding:0;
+	list-style: none;
+	width:800px;
+}
+
+ul#suggestions li {
+	color:#eee;
+	padding: 0.1em 0.5em;
+	text-decoration: none;
+}
+
+ul#suggestions li.selected{
+	background: #637180;
 }
