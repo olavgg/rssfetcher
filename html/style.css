@@ -51,6 +51,7 @@ a{
 }
 #search_results ul li a{
 	position: relative;
+	width: inherit;
 }
 #search_results ul li a span{
 	position: absolute;
@@ -99,18 +100,17 @@ a{
 }
 .suggest-header{
 	background:#3F4851;
-	width:800px;
+	width:100%;
 	display: inline-block;
 	font-size: 0.8em;
 	font-weight: bold;
 }
 ul#suggestions {
-	position:absolute;
+	position:relative;
 	background:#3F4851;
 	margin:0;
 	padding:0;
 	list-style: none;
-	width:800px;
 }
 
 ul#suggestions li {

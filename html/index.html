@@ -296,7 +296,7 @@
 				{
 					url: url,
 					complete: function(response){
-						data = JSON.parse(response.responseText);
+						var data = JSON.parse(response.responseText);
 						document.getElementById("total").textContent =
 								data.indices.articles.primaries.docs.count;
 					}
